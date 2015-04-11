@@ -5,6 +5,9 @@ import streamify from './utils/streamify'
 let client = streamifyAll(mongodb.MongoClient);
 let throwAny = (x) => { throw x; }
 
+import events from 'events'
+events.EventEmitter.prototype._maxListeners = 20;
+
 let fn = () => {
   return _.flatMap((cmd) => {
     if (!cmd) throw new Error('command missing.');

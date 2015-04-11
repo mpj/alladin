@@ -14,9 +14,6 @@ let throwAny = (x) => { throw x; }
 import deepMatches from 'mout/object/deepMatches'
 
 
-
-
-
 describe('mongo facade', () => {
 
   it('inserts', (done) => {
