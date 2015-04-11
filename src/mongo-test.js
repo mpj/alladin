@@ -20,6 +20,7 @@ let checkStream = partial(streamChecker, 'it')
 let ONLYcheckStream = partial(streamChecker, 'only')
 
 let SERVER_URI = 'mongodb://localhost:27017/test-unit'
+
 let whenDroppedWithAPI = (collection) =>
   _([{
     method: 'drop',
@@ -32,7 +33,7 @@ let whenDroppedWithAPI = (collection) =>
     else push(null, true)
   })
 
-let whenInsertedNatively = (collection, doc) =>
+let nativeInsert = (collection, doc) =>
   streamify(client)
   .connect(SERVER_URI)
   .flatMap((db) =>
@@ -42,6 +43,18 @@ let whenInsertedNatively = (collection, doc) =>
     )
   )
 
+let nativeFind = (collection, selector) =>
+  streamify(client)
+  .connect(SERVER_URI)
+  .flatMap((db) =>
+    _(db.collection(collection)
+      .find(selector)
+      .stream())
+  )
+
+let nativeCount = (collection, selector) =>
+  streamify(client).connect(SERVER_URI)
+    .flatMap((db) => streamify(db.collection(collection)).count(selector))
 
 describe('mongo facade', () => {
 
@@ -55,14 +68,7 @@ describe('mongo facade', () => {
       opts: { w: 1, j: 1 }
     }))
     .through(mongo())
-    .flatMap(() =>
-      streamify(client)
-        .connect('mongodb://localhost:27017/test-unit')
-    )
-    .flatMap((db) =>
-      _(db.collection('stuff')
-        .find({ waffles: 3 })
-        .stream())
+    .flatMap(() => nativeFind('stuff',{ waffles: 3 })
     ).filter((x) => deepMatches(x, {
       waffles: 3
     }))
@@ -75,14 +81,14 @@ describe('mongo facade', () => {
       collection: 'animals',
       doc: { horses: 7 },
       opts: { w: 1, j: 1 },
-      server: 'mongodb://localhost:27017/test-unit',
+      server: SERVER_URI,
     }))
     .through(mongo())
     .flatMap(() => _([{
         method: 'find',
         selector: {},
         collection: 'animals',
-        server: 'mongodb://localhost:27017/test-unit',
+        server: SERVER_URI,
       }])
       .through(mongo())
     )
@@ -93,26 +99,25 @@ describe('mongo facade', () => {
   )
 
   checkStream('drops collection',
-    whenInsertedNatively('stuff', {
+    nativeInsert('stuff', {
       pancakes: 8
     })
-    .flatMap(() => streamify(client).connect(SERVER_URI))
-    .flatMap((db) =>
+    .flatMap(() =>
       _([{
-        server: 'mongodb://localhost:27017/test-unit',
+        server: SERVER_URI,
         collection: 'stuff',
         method: 'drop'
       }])
       .through(mongo())
-      .flatMap(() => streamify(db.collection('stuff')).count({}))
     )
+    .flatMap(() => nativeCount('stuff'))
     .filter((count) => count === 0)
   )
 
   checkStream('finds and modifies',
     whenDroppedWithAPI('articles')
-    .flatMap(() => whenInsertedNatively('articles', { rutabaga: 3 }))
-    .flatMap(() => whenInsertedNatively('articles', { rutabaga: 8 }))
+    .flatMap(() => nativeInsert('articles', { rutabaga: 3 }))
+    .flatMap(() => nativeInsert('articles', { rutabaga: 8 }))
     .map(constant({
       server: SERVER_URI,
       collection: 'articles',
@@ -121,8 +126,7 @@ describe('mongo facade', () => {
       selector: { rutabaga: 8 },
     }))
     .through(mongo())
-    .flatMap(() => streamify(client).connect(SERVER_URI))
-    .flatMap((db) => _(db.collection('articles').find({}).stream()))
+    .flatMap(() => nativeFind('articles', {}))
     .collect()
     .filter((x) => deepMatches(x, [
       { rutabaga: 3 },
