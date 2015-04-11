@@ -38,29 +38,27 @@ describe('mongo facade', () => {
 
   it('finds (all)',
     _([{
-      server: 'mongodb://localhost:27017/test-unit',
       method: 'drop',
       collection: 'animals',
+      server: 'mongodb://localhost:27017/test-unit',
     }])
     .through(mongo())
     .map(() => ({
-      server: 'mongodb://localhost:27017/test-unit',
       method: 'insert',
       collection: 'animals',
       doc: { horses: 7 },
-      opts: { w: 1, j: 1 }
+      opts: { w: 1, j: 1 },
+      server: 'mongodb://localhost:27017/test-unit',
     }))
     .through(mongo())
-    .flatMap(() => {
-      let cmd = {
-        server: 'mongodb://localhost:27017/test-unit',
+    .flatMap(() => _([{
         method: 'find',
         selector: {},
         collection: 'animals',
-      }
-      return _([cmd])
-        .through(mongo())
-    })
+        server: 'mongodb://localhost:27017/test-unit',
+      }])
+      .through(mongo())
+    )
     .collect()
     .filter((x) => deepMatches(x, [
       { horses: 7 }
