@@ -1,8 +1,6 @@
 import _ from 'highland'
+import inspector from './utils/inspector-stream'
 
-import events from 'events'
-
-events.EventEmitter.prototype._maxListeners = 20;
 
 let errorThrower = (err) => {
   throw err
@@ -10,17 +8,20 @@ let errorThrower = (err) => {
 
 let constructor = (mongo) => ({
   pusher: () =>
-    _.flatMap((doc) => mongo({
+    _.pipeline(_.map((doc) => ({
       method: 'insert',
       doc
     })),
-  read: () =>
-    _.flatMap((doc) => mongo({
-      method: 'find',
-      selector: {}
-    })),
+    mongo(),
+    _.map((x) => true)),
 
-
+  read: (selector) =>
+    _([selector])
+      .map((selector) => ({
+        method: 'find',
+        selector: selector || {}
+      }))
+      .through(mongo())
 })
 
 export default constructor

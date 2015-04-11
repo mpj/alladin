@@ -1,44 +1,59 @@
 require('source-map-support').install();
 
 import assert from 'assert'
+import deepMatches from 'mout/object/deepMatches'
 import constructor from './index'
 import _ from 'highland'
 import sinon from 'sinon'
+import stubStream from './utils/stub-stream'
+
+import events from 'events'
+
+events.EventEmitter.prototype._maxListeners = 20;
 
 describe('when we have an instance', function() {
   let instance;
-  let mongoCommand;
+  let mongoStream;
   beforeEach(function() {
-    mongoCommand = sinon.stub()
+    mongoStream = stubStream()
+    let mongoCommand = () => mongoStream;
     instance = constructor(mongoCommand);
   })
 
-  it('pushes write to mongo', () => {
+  it('pushes write to mongo', (done) => {
 
-    mongoCommand.withArgs({
+    mongoStream.stub({
       method: 'insert',
-      doc: {hello: 1}
-    }).returns(_([true]))
+      doc: { hello: 1 }
+    })
 
     _([{hello: 1}])
       .through(instance.pusher())
-      .each((x) => assert(x === true))
+      .each((x) => {
+        assert(x === true)
+        done()
+      })
 
   })
 
-  it('reads (all)', () => {
-    mongoCommand.withArgs({
+  it('reads (all)', (done) => {
+
+    mongoStream.stub({
       method: 'find',
       selector: {}
-    }).returns(_([
+    }, _([
       { hello: 'a' },
       { hello: 'b' }
     ]))
 
     _(instance.read())
       .batch(2)
-      .each((x) => assert.deepEqual(x,
-        [ { hello: 'a' }, { hello: 'b' } ]))
+      .errors(console.warn)
+      .each((x) => {
+        assert.deepEqual(x,
+        [ { hello: 'a' }, { hello: 'b' } ])
+        done()
+      })
   })
 
 
