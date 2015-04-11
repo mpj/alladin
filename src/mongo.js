@@ -6,7 +6,7 @@ let client = streamifyAll(mongodb.MongoClient);
 let throwAny = (x) => { throw x; }
 
 import events from 'events'
-events.EventEmitter.prototype._maxListeners = 20;
+events.EventEmitter.prototype._maxListeners = 25;
 
 let fn = () => {
   return _.flatMap((cmd) => {
@@ -14,13 +14,13 @@ let fn = () => {
     if (!cmd.server)     throw new Error('server property missing.');
     if (!cmd.method)     throw new Error('method property missing.');
     if (!cmd.collection) throw new Error('collection property missing.');
-    if (!cmd.opts)       throw new Error('opts property missing.');
 
     return client.connectStreamed(cmd.server)
       .flatMap((db) => {
         let coll = streamifyAll(db.collection(cmd.collection))
         switch(cmd.method) {
           case 'insert':
+            if (!cmd.opts) throw new Error('opts property missing.');
             if (!cmd.doc) throw new Error('doc property missing.');
             return coll.insertStreamed(cmd.doc, cmd.opts);
 

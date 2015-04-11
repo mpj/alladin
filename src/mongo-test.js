@@ -1,49 +1,46 @@
 require('source-map-support').install();
 require("long-stack-traces")
 
-
-import Promise from 'bluebird'
 import mongodb from 'mongodb'
 import mongo from './mongo'
 import assert from 'assert'
-let client = Promise.promisifyAll(mongodb.MongoClient)
 import streamify from './utils/streamify'
 import _ from 'highland'
 import inspector from './utils/inspector-stream'
-let throwAny = (x) => { throw x; }
 import deepMatches from 'mout/object/deepMatches'
+import streamIt from './utils/stream-it'
 
+let client = mongodb.MongoClient
 
 describe('mongo facade', () => {
 
-  it('inserts', (done) => {
-    let cmd = {
+  it('inserts',
+    _([{
       server: 'mongodb://localhost:27017/test-unit',
       method: 'insert',
       collection: 'stuff',
       doc: { waffles: 3 },
       opts: { w: 1, j: 1 }
-    }
-    _([cmd])
-      .through(mongo())
-      .each(function() {
-        client.connectAsync('mongodb://localhost:27017/test-unit').then((db) => {
-          let coll = db.collection('stuff')
-          Promise.promisifyAll(coll)
-          coll.findAsync({waffles:3}).then(function(result) {
-            assert(result)
-            done()
-          }).done()
-        })
-      })
-  })
+    }])
+    .through(mongo())
+    .flatMap(() =>
+      streamify(client)
+        .connect('mongodb://localhost:27017/test-unit')
+    )
+    .flatMap((db) =>
+      _(db.collection('stuff')
+        .find({ waffles: 3 })
+        .stream())
+    ).filter((x) => deepMatches(x, {
+      waffles: 3
+    }))
+  )
 
-  it('finds (all)', (done) => {
+  it('finds (all)',
     _([{
       server: 'mongodb://localhost:27017/test-unit',
       method: 'drop',
       collection: 'animals',
-      opts: {}
     }])
     .through(mongo())
     .map(() => ({
@@ -60,43 +57,32 @@ describe('mongo facade', () => {
         method: 'find',
         selector: {},
         collection: 'animals',
-        opts: {}
       }
       return _([cmd])
         .through(mongo())
     })
     .collect()
-    .errors(throwAny)
-    .each((x) => {
-      assert(x.length === 1, 'too many items');
-      assert(deepMatches(x, [
-        {horses: 7}
-      ]), 'did not match');
-      done()
-    })
-  })
+    .filter((x) => deepMatches(x, [
+      { horses: 7 }
+    ]))
+  )
 
-  it('drops collection', (done) => {
-    streamify(client).connect('mongodb://localhost:27017/test-unit')
-      .flatMap((db) =>
-        streamify(db.collection('stuff')).insert({
-          pancakes: 8
-        })
-        .map(() => ({
-          server: 'mongodb://localhost:27017/test-unit',
-          collection: 'stuff',
-          method: 'drop',
-          opts: {}
-        }))
-        .through(mongo())
-        .flatMap(() => streamify(db.collection('stuff')).count({}))
-      )
-      .errors(done)
-      .each((count) => {
-        assert(count === 0, count +' items still in db')
-
-        done()
+  it('drops collection',
+    streamify(client)
+    .connect('mongodb://localhost:27017/test-unit')
+    .flatMap((db) =>
+      streamify(db.collection('stuff')).insert({
+        pancakes: 8
       })
+      .map(() => ({
+        server: 'mongodb://localhost:27017/test-unit',
+        collection: 'stuff',
+        method: 'drop'
+      }))
+      .through(mongo())
+      .flatMap(() => streamify(db.collection('stuff')).count({}))
+    )
+    .filter((count) => count === 0)
+  )
 
-  })
 })
