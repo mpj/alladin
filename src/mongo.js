@@ -33,11 +33,10 @@ let fn = () => {
             return _(db.collection(cmd.collection).find(cmd.selector).stream())
 
           case 'findAndModify':
-            if (!cmd.selector) throw new Error('selector property missing.');
             if (!cmd.update) throw new Error('update property missing.');
             return _( streamify(db.collection(cmd.collection)).findAndModify(
               cmd.selector,
-              {}, // sort,
+              cmd.sort,
               cmd.update,
               cmd.opts || {}
             ))

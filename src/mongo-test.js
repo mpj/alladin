@@ -134,5 +134,26 @@ describe('mongo facade', () => {
     ]))
   )
 
+  checkStream('find and modifies, sorted',
+    whenDroppedWithAPI('events')
+    .flatMap(() => nativeInsert('events', { ordinal: 3 }))
+    .flatMap(() => nativeInsert('events', { ordinal: 1 }))
+    .map(constant({
+      server: SERVER_URI,
+      collection: 'events',
+      method: 'findAndModify',
+      sort: { ordinal: 1 },
+      update: { $set: { rutabaga: 'yes' } },
+      // no selector, only sort
+    }))
+    .through(mongo())
+    .flatMap(() => nativeFind('events', {}))
+    .collect()
+    .filter((x) => deepMatches(x, [
+      { ordinal: 1, rutabaga: 'yes'},
+      { ordinal: 3 }
+    ]))
+  )
+
 
 })
