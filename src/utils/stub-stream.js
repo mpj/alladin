@@ -20,13 +20,12 @@ let stubStream = function stubStream(source) {
         if (!matchingStub) {
           next();
         } else {
-
           if (_.isStream(matchingStub.then)) {
-
             matchingStub.then.each((x) => push(null, x))
             matchingStub.then.on('end', () => next())
           } else {
             push(null, matchingStub.then || null)
+            next()
           }
         }
       }

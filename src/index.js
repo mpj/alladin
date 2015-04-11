@@ -5,6 +5,7 @@ let constructor = (mongo) => ({
   pusher: () =>_.pipeline(
     _.map((doc) => ({
       method: 'insert',
+      collection: 'event-log',
       doc
     })),
     mongo(),
@@ -15,7 +16,8 @@ let constructor = (mongo) => ({
     _([selector])
       .map((selector) => ({
         method: 'find',
-        selector: selector || {}
+        selector: selector || {},
+        collection: 'event-log',
       }))
       .through(mongo())
 })
