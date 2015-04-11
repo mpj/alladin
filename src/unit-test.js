@@ -1,5 +1,4 @@
 require('source-map-support').install();
-require("long-stack-traces")
 
 import assert from 'assert'
 import constructor from './index'
