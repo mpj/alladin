@@ -1,13 +1,13 @@
 import mongodb from 'mongodb'
 import _ from 'highland'
 import streamify from './utils/streamify'
-let client = mongodb.MongoClient;
+import fi from './utils/fi'
 import matches from 'mout/object/matches'
-
 import events from 'events'
+
 events.EventEmitter.prototype._maxListeners = 25;
 
-let fi = (bool, fn) => { if(bool) fn() }
+let client = mongodb.MongoClient;
 
 let ensureProperties = (obj, props) =>
   props.forEach((prop) =>

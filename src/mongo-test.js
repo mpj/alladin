@@ -7,7 +7,7 @@ import inspector from './utils/inspector-stream'
 import deepMatches from 'mout/object/deepMatches'
 import constant from 'mout/function/constant'
 import {checkStream,ONLYcheckStream} from './utils/stream-checker'
-
+import fi from './utils/fi'
 events.EventEmitter.prototype._maxListeners = 100;
 require('source-map-support').install();
 
@@ -15,7 +15,7 @@ let client = mongodb.MongoClient
 
 let SERVER_URI = 'mongodb://localhost:27017/test-unit'
 
-let fi = (bool, fnTrue, fnFalse) => { if(bool) fnTrue(); else fnFalse(); }
+
 
 let whenDroppedWithAPI = (collection) =>
   _([{
