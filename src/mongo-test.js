@@ -10,6 +10,7 @@ import streamify from './utils/streamify'
 import _ from 'highland'
 import inspector from './utils/inspector-stream'
 import deepMatches from 'mout/object/deepMatches'
+import constant from 'mout/function/constant'
 import streamChecker from './utils/stream-checker'
 
 let client = mongodb.MongoClient
@@ -112,15 +113,13 @@ describe('mongo facade', () => {
     whenDroppedWithAPI('articles')
     .flatMap(() => whenInsertedNatively('articles', { rutabaga: 3 }))
     .flatMap(() => whenInsertedNatively('articles', { rutabaga: 8 }))
-    .map(() =>
-      ({
-        server: SERVER_URI,
-        collection: 'articles',
-        method: 'findAndModify',
-        update: { $inc: { rutabaga: 3 } },
-        selector: { rutabaga: 8 },
-      })
-    )
+    .map(constant({
+      server: SERVER_URI,
+      collection: 'articles',
+      method: 'findAndModify',
+      update: { $inc: { rutabaga: 3 } },
+      selector: { rutabaga: 8 },
+    }))
     .through(mongo())
     .flatMap(() => streamify(client).connect(SERVER_URI))
     .flatMap((db) => _(db.collection('articles').find({}).stream()))
