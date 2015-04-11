@@ -1,17 +1,12 @@
 var gulp = require('gulp');
 var babel = require('gulp-babel');
-var fs = require('fs');
-var exec = require('child_process').exec;
 var watch = require('gulp-watch');
 var mocha = require('gulp-mocha');
-var concat = require('gulp-concat');
 var sourcemaps = require('gulp-sourcemaps');
-var plumber = require('gulp-plumber');
 
 gulp.task('compile', function() {
   return gulp
     .src('src/**/*.js')
-    .pipe(plumber())
     .pipe(sourcemaps.init())
     .pipe(babel({ stage: 0 }))
     .pipe(sourcemaps.write('.'))
@@ -28,7 +23,7 @@ gulp.task('mocha', ['compile'], function () {
 
 gulp.task('mocha-mongo', ['compile'], function () {
     return gulp.src(['build/mongo-test.js'], {read: false})
-        .pipe(mocha({reporter: 'spec'}));
+        .pipe(mocha({ reporter: 'spec'}));
 });
 
 

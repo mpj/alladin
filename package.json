@@ -17,9 +17,6 @@
     "sinon": "~1.14.1",
     "source-map-support": "~0.2.10",
     "gulp-sourcemaps": "~1.5.1",
-    "gulp-concat": "~2.5.2",
-    "gulp-plumber": "~1.0.0",
-    "long-stack-traces": "~0.1.2"
   },
   "dependencies": {
     "highland": "~2.4.0",
