@@ -6,7 +6,7 @@ import _ from 'highland'
 import inspector from './utils/inspector-stream'
 import deepMatches from 'mout/object/deepMatches'
 import constant from 'mout/function/constant'
-import {checkStream,ONLYcheckStream} from './utils/stream-checker'
+import {checkStream, ONLYcheckStream} from './utils/stream-checker'
 import fi from './utils/fi'
 events.EventEmitter.prototype._maxListeners = 100;
 require('source-map-support').install();

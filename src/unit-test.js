@@ -5,6 +5,9 @@ import constructor from './index'
 import _ from 'highland'
 import stubStream from './utils/stub-stream'
 import events from 'events'
+import constant from 'mout/function/constant'
+import {checkStream, ONLYcheckStream} from './utils/stream-checker'
+import deepMatches from 'mout/object/deepMatches'
 
 events.EventEmitter.prototype._maxListeners = 20;
 
@@ -13,28 +16,20 @@ describe('when we have an instance', function() {
   let mongoStream;
   beforeEach(function() {
     mongoStream = stubStream()
-    let mongoCommand = () => mongoStream;
-    instance = constructor(mongoCommand);
+    let mongoConstructor = () => mongoStream;
+    instance = constructor(mongoConstructor);
   })
 
-  it('pushes write to mongo', (done) => {
-
+  checkStream('pushes write to mongo', () =>
     mongoStream.stub({
       method: 'insert',
       doc: { hello: 1 }
     })
+    .map(constant({hello: 1}))
+    .through(instance.pusher())
+  )
 
-    _([{hello: 1}])
-      .through(instance.pusher())
-      .each((x) => {
-        assert(x === true)
-        done()
-      })
-
-  })
-
-  it('reads (all)', (done) => {
-
+  checkStream('reads (all)', () =>
     mongoStream.stub({
       method: 'find',
       selector: {}
@@ -42,16 +37,13 @@ describe('when we have an instance', function() {
       { hello: 'a' },
       { hello: 'b' }
     ]))
-
-    _(instance.read())
-      .batch(2)
-      .errors(console.warn)
-      .each((x) => {
-        assert.deepEqual(x,
-        [ { hello: 'a' }, { hello: 'b' } ])
-        done()
-      })
-  })
-
+    .flatMap(() => instance.read())
+    .batch(2)
+    .errors(console.warn)
+    .filter((x) => deepMatches(x, [
+      { hello: 'a' },
+      { hello: 'b' }
+    ]))
+  )
 
 })

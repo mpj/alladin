@@ -1,6 +1,7 @@
 import _ from 'highland'
 
 import partial from 'mout/function/partial'
+import isFunction from 'mout/lang/isFunction'
 
 let throwAny = (x) => {
   console.warn("WARNING! Stream ended in error.")
@@ -14,7 +15,7 @@ let oldIt = it
 let oldxit = xit
 let streamChecker = (method, description, strm) => {
 
-  if(!_.isStream(strm))  { throw new Error('not a stream'); }
+
   var fn;
   if (method === 'it')
     fn = oldIt;
@@ -24,11 +25,13 @@ let streamChecker = (method, description, strm) => {
     fn = oldxit;
   else
     throw new Error('unsupported method');
-  fn(description, (done) =>
+  fn(description, (done) => {
+    if(isFunction(strm)) strm = strm();
+    if(!_.isStream(strm))  { throw new Error('not a stream'); }
     strm
       .errors(throwAny)
       .each(() => done())
-  )
+  })
 }
 
 let checkStream = partial(streamChecker, 'it')
