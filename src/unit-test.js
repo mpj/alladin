@@ -1,12 +1,9 @@
 require('source-map-support').install();
 
 import assert from 'assert'
-import deepMatches from 'mout/object/deepMatches'
 import constructor from './index'
 import _ from 'highland'
-import sinon from 'sinon'
 import stubStream from './utils/stub-stream'
-
 import events from 'events'
 
 events.EventEmitter.prototype._maxListeners = 20;

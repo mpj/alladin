@@ -16,7 +16,6 @@ let stubStream = function stubStream(source) {
           push(null, x);
       }
       else {
-        console.log("hdsajadhssh",stubs)
         let matchingStub = find(stubs, (stub) => deepMatches(x, stub.when))
         if (!matchingStub) {
           next();
