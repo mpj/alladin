@@ -1,5 +1,7 @@
+import events from 'events'
+events.EventEmitter.prototype._maxListeners = 25;
+
 require('source-map-support').install();
-require("long-stack-traces")
 
 import mongodb from 'mongodb'
 import mongo from './mongo'
@@ -8,20 +10,49 @@ import streamify from './utils/streamify'
 import _ from 'highland'
 import inspector from './utils/inspector-stream'
 import deepMatches from 'mout/object/deepMatches'
-import streamIt from './utils/stream-it'
+import streamChecker from './utils/stream-checker'
 
 let client = mongodb.MongoClient
+import partial from 'mout/function/partial'
+
+let checkStream = partial(streamChecker, 'it')
+let ONLYcheckStream = partial(streamChecker, 'only')
+
+let SERVER_URI = 'mongodb://localhost:27017/test-unit'
+let whenDroppedWithAPI = (collection) =>
+  _([{
+    method: 'drop',
+    collection,
+    server: SERVER_URI
+  }])
+  .through(mongo())
+  .errors((err, push) => {
+    if(err.message !== 'ns not found') push(err)
+    else push(null, true)
+  })
+
+let whenInsertedNatively = (collection, doc) =>
+  streamify(client)
+  .connect(SERVER_URI)
+  .flatMap((db) =>
+    streamify(db.collection(collection)).insert(
+      doc,
+      { w: 1 }
+    )
+  )
+
 
 describe('mongo facade', () => {
 
-  it('inserts',
-    _([{
+  checkStream('inserts',
+    whenDroppedWithAPI('stuff')
+    .map(() => ({
       server: 'mongodb://localhost:27017/test-unit',
       method: 'insert',
       collection: 'stuff',
       doc: { waffles: 3 },
       opts: { w: 1, j: 1 }
-    }])
+    }))
     .through(mongo())
     .flatMap(() =>
       streamify(client)
@@ -36,13 +67,8 @@ describe('mongo facade', () => {
     }))
   )
 
-  it('finds (all)',
-    _([{
-      method: 'drop',
-      collection: 'animals',
-      server: 'mongodb://localhost:27017/test-unit',
-    }])
-    .through(mongo())
+  checkStream('finds (all)',
+    whenDroppedWithAPI('animals')
     .map(() => ({
       method: 'insert',
       collection: 'animals',
@@ -65,22 +91,45 @@ describe('mongo facade', () => {
     ]))
   )
 
-  it('drops collection',
-    streamify(client)
-    .connect('mongodb://localhost:27017/test-unit')
+  checkStream('drops collection',
+    whenInsertedNatively('stuff', {
+      pancakes: 8
+    })
+    .flatMap(() => streamify(client).connect(SERVER_URI))
     .flatMap((db) =>
-      streamify(db.collection('stuff')).insert({
-        pancakes: 8
-      })
-      .map(() => ({
+      _([{
         server: 'mongodb://localhost:27017/test-unit',
         collection: 'stuff',
         method: 'drop'
-      }))
+      }])
       .through(mongo())
       .flatMap(() => streamify(db.collection('stuff')).count({}))
     )
     .filter((count) => count === 0)
   )
+
+  checkStream('finds and modifies',
+    whenDroppedWithAPI('articles')
+    .flatMap(() => whenInsertedNatively('articles', { rutabaga: 3 }))
+    .flatMap(() => whenInsertedNatively('articles', { rutabaga: 8 }))
+    .map(() =>
+      ({
+        server: SERVER_URI,
+        collection: 'articles',
+        method: 'findAndModify',
+        update: { $inc: { rutabaga: 3 } },
+        selector: { rutabaga: 8 },
+      })
+    )
+    .through(mongo())
+    .flatMap(() => streamify(client).connect(SERVER_URI))
+    .flatMap((db) => _(db.collection('articles').find({}).stream()))
+    .collect()
+    .filter((x) => deepMatches(x, [
+      { rutabaga: 3 },
+      { rutabaga: 11 }
+    ]))
+  )
+
 
 })

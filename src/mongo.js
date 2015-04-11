@@ -17,19 +17,30 @@ let fn = () => {
 
     return client.connectStreamed(cmd.server)
       .flatMap((db) => {
-        let coll = streamifyAll(db.collection(cmd.collection))
         switch(cmd.method) {
           case 'insert':
             if (!cmd.opts) throw new Error('opts property missing.');
             if (!cmd.doc) throw new Error('doc property missing.');
-            return coll.insertStreamed(cmd.doc, cmd.opts);
+            return streamify(db.collection(cmd.collection))
+              .insert(cmd.doc, cmd.opts || {});
 
           case 'drop':
-            return coll.dropStreamed()
+            return streamify(db.collection(cmd.collection))
+              .drop()
 
           case 'find':
             if (!cmd.selector) throw new Error('selector property missing.');
-            return _(coll.find(cmd.selector).stream())
+            return _(db.collection(cmd.collection).find(cmd.selector).stream())
+
+          case 'findAndModify':
+            if (!cmd.selector) throw new Error('selector property missing.');
+            if (!cmd.update) throw new Error('update property missing.');
+            return _( streamify(db.collection(cmd.collection)).findAndModify(
+              cmd.selector,
+              {}, // sort,
+              cmd.update,
+              cmd.opts || {}
+            ))
 
           default:
             throw new Error('Does not understand method: ' + cmd.method)

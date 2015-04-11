@@ -1,9 +1,20 @@
 var _ = require('highland')
-module.exports = function inspector(name, thunk) {
-  name = name || 'untitled';
-  var thr = _()
-  thr[thunk ? 'fork' : 'observe']().each(function(x) {
-    console.log("[INSPECTING / " + name + "]", x)
-  })
-  return thr;
-}
+
+module.exports = _.curry(function inspector(name, source) {
+  return source.consume(function (err, x, push, next) {
+      if (err) {
+          console.log("[INSPECTING / " + name + "] ERROR", err)
+          push(err);
+          next();
+      }
+      else if (x === _.nil) {
+          console.log("[INSPECTING / " + name + "] STREAM ENDED!")
+          push(null, x);
+      }
+      else {
+          console.log("[INSPECTING / " + name + "]", x)
+          push(null, x);
+          next();
+      }
+  });
+ })
