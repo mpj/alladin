@@ -1,8 +1,6 @@
-require('source-map-support').install();
-
-import assert from 'assert'
-import constructor from './index'
 import _ from 'highland'
+import sourceMaps from 'source-map-support'
+import constructor from './index'
 import stubStream from './utils/stub-stream'
 import events from 'events'
 import constant from 'mout/function/constant'
@@ -10,6 +8,7 @@ import {checkStream, ONLYcheckStream} from './utils/stream-checker'
 import deepMatches from 'mout/object/deepMatches'
 
 events.EventEmitter.prototype._maxListeners = 20;
+sourceMaps.install();
 
 describe('when we have an instance', function() {
   let instance;
