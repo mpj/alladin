@@ -1,5 +1,6 @@
 import _ from 'highland'
-import assert from 'assert'
+
+import partial from 'mout/function/partial'
 
 let throwAny = (x) => {
   console.warn("WARNING! Stream ended in error.")
@@ -30,4 +31,7 @@ let streamChecker = (method, description, strm) => {
   )
 }
 
-export default streamChecker
+let checkStream = partial(streamChecker, 'it')
+let ONLYcheckStream = partial(streamChecker, 'only')
+
+export {checkStream, ONLYcheckStream}

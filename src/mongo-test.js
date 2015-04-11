@@ -1,23 +1,17 @@
 import events from 'events'
-events.EventEmitter.prototype._maxListeners = 25;
-
-require('source-map-support').install();
-
 import mongodb from 'mongodb'
 import mongo from './mongo'
-import assert from 'assert'
 import streamify from './utils/streamify'
 import _ from 'highland'
 import inspector from './utils/inspector-stream'
 import deepMatches from 'mout/object/deepMatches'
 import constant from 'mout/function/constant'
-import streamChecker from './utils/stream-checker'
+import {checkStream,ONLYcheckStream} from './utils/stream-checker'
+
+events.EventEmitter.prototype._maxListeners = 100;
+require('source-map-support').install();
 
 let client = mongodb.MongoClient
-import partial from 'mout/function/partial'
-
-let checkStream = partial(streamChecker, 'it')
-let ONLYcheckStream = partial(streamChecker, 'only')
 
 let SERVER_URI = 'mongodb://localhost:27017/test-unit'
 
