@@ -1,26 +1,27 @@
 import mongodb from 'mongodb'
 import _ from 'highland'
-import streamifyAll from './utils/streamifyAll'
 import streamify from './utils/streamify'
-let client = streamifyAll(mongodb.MongoClient);
-let throwAny = (x) => { throw x; }
+let client = mongodb.MongoClient;
+import matches from 'mout/object/matches'
 
 import events from 'events'
 events.EventEmitter.prototype._maxListeners = 25;
 
+let fi = (bool, fn) => { if(bool) fn() }
+
+let ensureProperties = (obj, props) =>
+  props.forEach((prop) =>
+    fi(!obj[prop], () => { throw new Error(prop + ' property missing') }))
+
 let fn = () => {
   return _.flatMap((cmd) => {
     if (!cmd) throw new Error('command missing.');
-    if (!cmd.server)     throw new Error('server property missing.');
-    if (!cmd.method)     throw new Error('method property missing.');
-    if (!cmd.collection) throw new Error('collection property missing.');
-
-    return client.connectStreamed(cmd.server)
+    ensureProperties(cmd, ['server', 'method', 'collection'])
+    return streamify(client).connect(cmd.server)
       .flatMap((db) => {
         switch(cmd.method) {
           case 'insert':
-            if (!cmd.opts) throw new Error('opts property missing.');
-            if (!cmd.doc) throw new Error('doc property missing.');
+            ensureProperties(cmd, ['opts', 'doc'])
             return streamify(db.collection(cmd.collection))
               .insert(cmd.doc, cmd.opts || {});
 
@@ -29,11 +30,11 @@ let fn = () => {
               .drop()
 
           case 'find':
-            if (!cmd.selector) throw new Error('selector property missing.');
+            ensureProperties(cmd, ['selector'])
             return _(db.collection(cmd.collection).find(cmd.selector).stream())
 
           case 'findAndModify':
-            if (!cmd.update) throw new Error('update property missing.');
+            ensureProperties(cmd, ['update'])
             return _( streamify(db.collection(cmd.collection)).findAndModify(
               cmd.selector,
               cmd.sort,

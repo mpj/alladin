@@ -15,6 +15,8 @@ let client = mongodb.MongoClient
 
 let SERVER_URI = 'mongodb://localhost:27017/test-unit'
 
+let fi = (bool, fnTrue, fnFalse) => { if(bool) fnTrue(); else fnFalse(); }
+
 let whenDroppedWithAPI = (collection) =>
   _([{
     method: 'drop',
@@ -22,10 +24,11 @@ let whenDroppedWithAPI = (collection) =>
     server: SERVER_URI
   }])
   .through(mongo())
-  .errors((err, push) => {
-    if(err.message !== 'ns not found') push(err)
-    else push(null, true)
-  })
+  .errors((err, push) => fi(
+    err.message !== 'ns not found',
+    () => push(err),
+    () => push(null, true)
+  ))
 
 let nativeInsert = (collection, doc) =>
   streamify(client)
