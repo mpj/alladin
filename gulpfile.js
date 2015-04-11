@@ -34,14 +34,14 @@ gulp.task('mocha-mongo', ['compile'], function () {
 
 
 gulp.task('watch', function () {
-  watch(['*.js'], function () {
+  watch(['src/**/*.js'], function () {
     gulp.start('mocha');
   });
   gulp.start('mocha');
 });
 
 gulp.task('watch-mongo', function () {
-  watch(['*.js'], function () {
+  watch(['src/**/*.js'], function () {
     gulp.start('mocha-mongo');
   });
   gulp.start('mocha-mongo');

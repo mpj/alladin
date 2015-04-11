@@ -1,6 +1,7 @@
 import mongodb from 'mongodb'
 import _ from 'highland'
 import streamifyAll from './utils/streamifyAll'
+import streamify from './utils/streamify'
 let client = streamifyAll(mongodb.MongoClient);
 let throwAny = (x) => { throw x; }
 
@@ -23,12 +24,15 @@ let fn = () => {
           case 'drop':
             return coll.dropStreamed()
 
+          case 'find':
+            if (!cmd.selector) throw new Error('selector property missing.');
+            return _(coll.find(cmd.selector).stream())
+
           default:
             throw new Error('Does not understand method: ' + cmd.method)
         }
 
       })
-      .errors(throwAny)
 
   })
 

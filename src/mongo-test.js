@@ -1,12 +1,25 @@
+require('source-map-support').install();
+require("long-stack-traces")
+
+
 import Promise from 'bluebird'
 import mongodb from 'mongodb'
 import mongo from './mongo'
 import assert from 'assert'
 let client = Promise.promisifyAll(mongodb.MongoClient)
+import streamify from './utils/streamify'
 import _ from 'highland'
+import inspector from './utils/inspector-stream'
+let throwAny = (x) => { throw x; }
+import deepMatches from 'mout/object/deepMatches'
+
+
+
+
 
 describe('mongo facade', () => {
-  it('hello', (done) => {
+
+  it('inserts', (done) => {
     let cmd = {
       server: 'mongodb://localhost:27017/test-unit',
       method: 'insert',
@@ -28,31 +41,65 @@ describe('mongo facade', () => {
       })
   })
 
-  it('drops collection', (done) => {
+  it('finds (all)', (done) => {
+    _([{
+      server: 'mongodb://localhost:27017/test-unit',
+      method: 'drop',
+      collection: 'animals',
+      opts: {}
+    }])
+    .through(mongo())
+    .map(() => ({
+      server: 'mongodb://localhost:27017/test-unit',
+      method: 'insert',
+      collection: 'animals',
+      doc: { horses: 7 },
+      opts: { w: 1, j: 1 }
+    }))
+    .through(mongo())
+    .flatMap(() => {
+      let cmd = {
+        server: 'mongodb://localhost:27017/test-unit',
+        method: 'find',
+        selector: {},
+        collection: 'animals',
+        opts: {}
+      }
+      return _([cmd])
+        .through(mongo())
+    })
+    .collect()
+    .errors(throwAny)
+    .each((x) => {
+      assert(x.length === 1, 'too many items');
+      assert(deepMatches(x, [
+        {horses: 7}
+      ]), 'did not match');
+      done()
+    })
+  })
 
-    client.connect('mongodb://localhost:27017/test-unit', (err, db) => {
-      db.collection('stuff').insert({
-        pancakes: 8
-      }, () => {
-        let cmd = {
+  it('drops collection', (done) => {
+    streamify(client).connect('mongodb://localhost:27017/test-unit')
+      .flatMap((db) =>
+        streamify(db.collection('stuff')).insert({
+          pancakes: 8
+        })
+        .map(() => ({
           server: 'mongodb://localhost:27017/test-unit',
           collection: 'stuff',
           method: 'drop',
           opts: {}
-        }
-        _([cmd])
-          .through(mongo())
-          .each(() => {
-            db.collection('stuff').count({}, (_, count) => {
-              assert(count === 0, 'items still in db')
-              done()
-            })
-          })
+        }))
+        .through(mongo())
+        .flatMap(() => streamify(db.collection('stuff')).count({}))
+      )
+      .errors(done)
+      .each((count) => {
+        assert(count === 0, count +' items still in db')
 
-
+        done()
       })
-    })
+
   })
-
-
 })
