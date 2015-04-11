@@ -1,8 +1,7 @@
-import Promise from 'bluebird'
 import mongodb from 'mongodb'
 import _ from 'highland'
-
-let client = mongodb.MongoClient;
+import streamifyAll from './utils/streamifyAll'
+let client = streamifyAll(mongodb.MongoClient);
 let throwAny = (x) => { throw x; }
 
 let fn = () => {
@@ -13,21 +12,23 @@ let fn = () => {
     if (!cmd.collection) throw new Error('collection property missing.');
     if (!cmd.opts)       throw new Error('opts property missing.');
 
-    let out = _()
-
-    return _.wrapCallback(client.connect.bind(client))(cmd.server)
+    return client.connectStreamed(cmd.server)
       .flatMap((db) => {
-        let coll = db.collection(cmd.collection)
+        let coll = streamifyAll(db.collection(cmd.collection))
         switch(cmd.method) {
           case 'insert':
             if (!cmd.doc) throw new Error('doc property missing.');
-            let insert = _.wrapCallback(coll.insert.bind(coll))
-            return insert(cmd.doc, cmd.opts);
+            return coll.insertStreamed(cmd.doc, cmd.opts);
+
+          case 'drop':
+            return coll.dropStreamed()
+
+          default:
+            throw new Error('Does not understand method: ' + cmd.method)
         }
+
       })
       .errors(throwAny)
-
-    return out;
 
   })
 

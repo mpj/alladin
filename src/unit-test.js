@@ -1,4 +1,5 @@
 require('source-map-support').install();
+require("long-stack-traces")
 
 import assert from 'assert'
 import constructor from './index'
@@ -15,17 +16,31 @@ describe('when we have an instance', function() {
 
   it('pushes write to mongo', () => {
 
+    mongoCommand.withArgs({
+      method: 'insert',
+      doc: {hello: 1}
+    }).returns(_([true]))
+
     _([{hello: 1}])
       .through(instance.pusher())
       .each((x) => assert(x === true))
 
-    sinon.assert.calledWith(mongoCommand, {
-      action: 'insert'
-    })
-
-
-
   })
 
-  it('terminate')
+  it('reads (all)', () => {
+    mongoCommand.withArgs({
+      method: 'find',
+      selector: {}
+    }).returns(_([
+      { hello: 'a' },
+      { hello: 'b' }
+    ]))
+
+    _(instance.read())
+      .batch(2)
+      .each((x) => assert.deepEqual(x,
+        [ { hello: 'a' }, { hello: 'b' } ]))
+  })
+
+
 })

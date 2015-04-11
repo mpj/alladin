@@ -5,7 +5,6 @@ import assert from 'assert'
 let client = Promise.promisifyAll(mongodb.MongoClient)
 import _ from 'highland'
 
-
 describe('mongo facade', () => {
   it('hello', (done) => {
     let cmd = {
@@ -28,4 +27,32 @@ describe('mongo facade', () => {
         })
       })
   })
+
+  it('drops collection', (done) => {
+
+    client.connect('mongodb://localhost:27017/test-unit', (err, db) => {
+      db.collection('stuff').insert({
+        pancakes: 8
+      }, () => {
+        let cmd = {
+          server: 'mongodb://localhost:27017/test-unit',
+          collection: 'stuff',
+          method: 'drop',
+          opts: {}
+        }
+        _([cmd])
+          .through(mongo())
+          .each(() => {
+            db.collection('stuff').count({}, (_, count) => {
+              assert(count === 0, 'items still in db')
+              done()
+            })
+          })
+
+
+      })
+    })
+  })
+
+
 })
