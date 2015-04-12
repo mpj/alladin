@@ -5,10 +5,10 @@ import isFunction from 'mout/lang/isFunction'
 
 let throwAny = (x) => {
   console.warn("WARNING! Stream ended in error.")
-  if (x.message)
-    console.warn(x.message)
   if (x.stack)
     console.warn(x.stack)
+  else if (x.message)
+    console.warn(x.message)
 }
 
 let oldIt = it
@@ -25,13 +25,17 @@ let streamChecker = (method, description, strm) => {
     fn = oldxit;
   else
     throw new Error('unsupported method');
-  fn(description, (done) => {
-    if(isFunction(strm)) strm = strm();
-    if(!_.isStream(strm))  { throw new Error('not a stream'); }
-    strm
-      .errors(throwAny)
-      .each(() => done())
-  })
+  if (!strm)
+    fn(description)
+  else
+    fn(description, (done) => {
+
+      if(isFunction(strm)) strm = strm();
+      if(!_.isStream(strm))  { throw new Error('not a stream'); }
+      strm
+        .errors(throwAny)
+        .each(() => done())
+    })
 }
 
 let checkStream = partial(streamChecker, 'it')

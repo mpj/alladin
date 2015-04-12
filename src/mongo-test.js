@@ -94,6 +94,10 @@ checkStream('finds (all)',
   ]))
 )
 
+checkStream('find (with limit)')
+checkStream('count')
+checkStream('cleans away connecion from result')
+
 checkStream('drops collection',
   nativeInsert('stuff', {
     pancakes: 8
@@ -167,4 +171,38 @@ checkStream('find and modifies, options',
   .filter((x) => deepMatches(x, [
     { anything: 5, rutabaga: 'yes' }
   ]))
+)
+/*
+checkStream('behaviourtest', () =>
+  whenDroppedWithAPI('events')
+  .flatMap(() => nativeInsert('events', {
+    is_placeholder: true
+  }))
+  .map(constant({
+    server: SERVER_URI,
+    collection: 'events',
+    method: 'findAndModify',
+    update: { rutabaga: 'yes' } ,
+    sort: { _id: 1 },
+    selector: { is_placeholder: { $exists: true} },
+    opts: { w: 1, j: 1, wtimeout: 5000, new:true }
+  }))
+  .through(mongo())
+  .through(inspector(''))
+)*/
+
+checkStream('behaviourtest', () =>
+  whenDroppedWithAPI('events')
+  .flatMap(() => nativeInsert('events', {
+    is_placeholder: true
+  }))
+  .map(constant({
+    server: SERVER_URI,
+    collection: 'events',
+    method: 'insert',
+    doc: [{ rutabaga: 'yes', _id: 0 },{ rutabaga: 'yes', _id: 1 }],
+    opts: { ordered: true }
+  }))
+  .through(mongo())
+  .through(inspector(''))
 )
