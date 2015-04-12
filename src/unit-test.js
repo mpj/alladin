@@ -21,7 +21,7 @@ describe('when we have an instance', function() {
     instance = constructor(mongoConstructor);
   })
 
-  ONLYcheckStream('pushes write to event-log', () => {
+  checkStream('pushes write to event-log', () => {
 
 
     mongoStream.stub({
