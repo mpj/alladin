@@ -4,6 +4,7 @@ import constructor from './index'
 import stubStream from './utils/stub-stream'
 import inspector from './utils/inspector-stream'
 import mapEnd from './utils/map-end'
+import fi from './utils/fi'
 import events from 'events'
 import constant from 'mout/function/constant'
 import {checkStream, ONLYcheckStream} from './utils/stream-checker'
@@ -94,8 +95,6 @@ describe('when we have an instance', function() {
     // in order (this is very important, so that we don't create
     // holes in the id chain)
 
-
-
     // The pusher will need to figure out what ordinal
     // the latest placeholder has.
     mongoStream.stub({
@@ -130,9 +129,27 @@ describe('when we have an instance', function() {
   })
 
 
-  checkStream('Handle log insert errors')
-  checkStream('Handle dispatch insert errors')
+  checkStream('Handle log insert errors', () => {
 
+    mongoStream.stub({
+      method: 'findAndModify',
+      collection: 'event-log',
+      selector: { is_placeholder: { $exists: true} },
+      sort: { _id: 1 },
+      update: { hello: 1 },
+      opts: { w: 1, j: 1, wtimeout: 5000, new: true }
+    }, null, new Error('wat'));
+
+
+    return _([{
+      hello: 1
+    }])
+    .through(instance.pusher())
+    .errors((err,push) => fi(err.message === 'wat', () => push(null, true)))
+    .through(mongoStream.checkAllReceived())
+  })
+
+  checkStream('Handle dispatch insert errors')
   checkStream('Ensure index on is_placeholder')
   checkStream('Setup event-dispatch')
   checkStream('Setup placeholders')

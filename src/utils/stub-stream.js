@@ -30,7 +30,10 @@ let stubStream = function stubStream(source) {
           next();
         } else {
           remove(stubsNotMatched, matchingStub)
-          if (_.isStream(matchingStub.then)) {
+          if (matchingStub.thenError) {
+            push(matchingStub.thenError)
+            next()
+          } else if (_.isStream(matchingStub.then)) {
             matchingStub.then.on('end', () => next())
             matchingStub.then.each((x) => push(null, x))
           } else {
@@ -79,8 +82,8 @@ let stubStream = function stubStream(source) {
     })
 
 
-  fn.stub = (when, then) => {
-    let stub = { when, then }
+  fn.stub = (when, then, thenError) => {
+    let stub = { when, then, thenError }
     stubs      .push(stub)
     stubsNotMatched .push(stub)
     return _([true])

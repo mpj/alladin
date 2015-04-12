@@ -18,8 +18,9 @@
     "source-map-support": "~0.2.10",
     "gulp-sourcemaps": "~1.5.1"
   },
+  "_comment": "Awaiting highland 2.5.0 and higher",
   "dependencies": {
-    "highland": "~2.4.0",
+    "highland": "caolan/highland#48bccf9c90884f2d244fb9d7f4a619e48a5f91f4",
     "mout": "~0.11.0",
     "mongodb": "~2.0.27"
   }
