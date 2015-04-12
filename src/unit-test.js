@@ -177,19 +177,7 @@ describe('when we have an instance', function() {
 
   checkStream('inserts as NumberLong')
   checkStream('fails the insert due to no placeholders')
-  /*
-  mongoStream.stub({
-    method: 'findAndModify',
-    selector: { is_placeholder: { $exists: true} },
-    sort: { _id: 1 },
-    collection: 'event-log',
-    update: { hello: 1 },
-    opts: { w: 1, j: 1, wtimeout: 5000, new: true }
-  },{
-    value: null,
-    ok: 1
-  })
-  */
+
 
 
 })

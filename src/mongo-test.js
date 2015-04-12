@@ -172,24 +172,6 @@ checkStream('find and modifies, options',
     { anything: 5, rutabaga: 'yes' }
   ]))
 )
-/*
-checkStream('behaviourtest', () =>
-  whenDroppedWithAPI('events')
-  .flatMap(() => nativeInsert('events', {
-    is_placeholder: true
-  }))
-  .map(constant({
-    server: SERVER_URI,
-    collection: 'events',
-    method: 'findAndModify',
-    update: { rutabaga: 'yes' } ,
-    sort: { _id: 1 },
-    selector: { is_placeholder: { $exists: true} },
-    opts: { w: 1, j: 1, wtimeout: 5000, new:true }
-  }))
-  .through(mongo())
-  .through(inspector(''))
-)*/
 
 checkStream('behaviourtest', () =>
   whenDroppedWithAPI('events')
