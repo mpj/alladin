@@ -23,7 +23,6 @@ describe('when we have an instance', function() {
 
   checkStream('pushes write to event-log', () => {
 
-
     mongoStream.stub({
       method: 'findAndModify',
       collection: 'event-log',
@@ -123,17 +122,84 @@ describe('when we have an instance', function() {
       result: { ok: 1, n: 9 }
     })
 
+    return _([{
+      hello: 1
+    }])
+    .through(instance.pusher())
+    .through(mongoStream.checkAllReceived())
+  })
 
+  checkStream('handle gaps in eventlog', () => {
+
+    // the insert itself
+    mongoStream.stub({
+      method: 'findAndModify',
+      collection: 'event-log'
+    }, {
+      value: { hello: 1, _id: 67121 },
+      ok: 1
+    })
+
+    // locate the last dispatch
+    mongoStream.stub({
+      method: 'find',
+      collection: 'event-dispatch',
+      sort: { '$natural': -1 }
+    }, _([
+      { rutabaga: 'yes', _id: 67119 }
+    ]))
+
+
+    // find events in the log that have occured
+    // after the last dispatch, and get back items
+    // with a gap in the ordinals
+    mongoStream.stub({
+      method: 'find',
+      collection: 'event-log',
+      selector: {
+        _id : { '$gt': 67119 },
+        is_placeholder: { '$exists': false }
+      },
+      sort: { id: 1 }
+    }, _([
+      { waffles: 'no', _id: 67120 },
+      { waffles: 'yes', _id: 67121 },
+      // Here is a space in the array where 67122 should be
+      { hello: 1, _id: 67123 }
+    ]))
+
+    // expect the pusher to only dispatch up to the point where
+    // the orginal chain is broken (we check for the negative
+    // case later)
+    mongoStream.stub({
+      method: 'insert',
+      collection: 'event-dispatch',
+      doc: [
+        { waffles: 'no', _id: 67120 },
+        { waffles: 'yes', _id: 67121 }
+      ]
+    },{
+      result: { ok: 1, n: 2 }
+    })
+
+    // we don't care about the rest, so we don't
+    // stub out more
 
     return _([{
       hello: 1
     }])
     .through(instance.pusher())
-    .through(inspector('ok'))
     .through(mongoStream.checkAllReceived())
-  })
+    .through(mongoStream.checkNotReceived({
+      method: 'insert',
+      collection: 'event-dispatch',
+      doc: [
+        { hello: 1, _id: 67123 }
+      ]
+    }))
 
-  checkStream('Add case for holes')
+  })
+  
   checkStream('Handle dispatch insert errors')
   checkStream('Ensure index on is_placeholder')
   checkStream('Setup event-dispatch')

@@ -17,14 +17,18 @@ let streamChecker = (method, description, strm) => {
 
 
   var fn;
-  if (method === 'it')
+  if (method === 'it') {
     fn = oldIt;
-  else if (method === 'only')
+  }
+  else if (method === 'only') {
+    console.warn("WARNING: Running single spec using ONLY prefix");
     fn = oldIt.only;
-  else if(method === 'xit')
+  }
+  else if(method === 'xit') {
     fn = oldxit;
-  else
+  } else {
     throw new Error('unsupported method');
+  }
   if (!strm)
     fn(description)
   else

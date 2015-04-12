@@ -42,15 +42,12 @@ let stubStream = function stubStream(source) {
     });
   }
   fn.didReceive = (pattern) =>
-    some(received, (r) => deepMatches(r, pattern))
+    find(received, (r) => deepMatches(r, pattern))
   fn.checkAllReceived = () => (source) =>
     source.consume((err, x, push, next) => {
       if (err) {
           push(err);
           next();
-      }
-      else if (x === _.nil) {
-          push(null, x);
       }
       else {
         if(stubsNotMatched.length === 0)
@@ -63,6 +60,21 @@ let stubStream = function stubStream(source) {
             )
 
           )
+      }
+    })
+  fn.checkNotReceived = (pattern) => (source) =>
+    source.consume((err, x, push, next) => {
+      if (err) {
+          push(err);
+          next();
+      } else {
+        var match = find(received, (r) => deepMatches(r, pattern))
+        if (!match)
+          push(null, true)
+        else
+          push(new Error('The stub should not have received this:' +
+            JSON.stringify(match, null, 2)
+          ))
       }
     })
 
