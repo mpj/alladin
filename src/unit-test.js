@@ -22,7 +22,6 @@ describe('when we have an instance', function() {
   })
 
   ONLYcheckStream('pushes write to event-log', () => {
-    // TODO: In the middle of changing this behavior
 
 
     mongoStream.stub({
@@ -67,14 +66,6 @@ describe('when we have an instance', function() {
       { hello: 1, _id: 67121 }
     ]))
 
-    // TODO: Add case for holes
-    // TODO: Handle dispatch insert errors
-    // TODO: Ensure index on is_placeholder
-    // TODO: Setup event-dispatch
-    // TODO: Setup placeholders
-
-
-
     // ... the pusher will try to insert these items into the
     // dispatch, in order ...
 
@@ -104,7 +95,7 @@ describe('when we have an instance', function() {
     // in order (this is very important, so that we don't create
     // holes in the id chain)
 
-    // TODO: Add case for max insertion
+
 
     // The pusher will need to figure out what ordinal
     // the latest placeholder has.
@@ -119,8 +110,6 @@ describe('when we have an instance', function() {
       is_placeholder: true
     })
 
-    // TODO: Add case for 0 placeholders
-    // TODO: Add case for enough placeholders
 
     mongoStream.stub({
       method: 'insert',
@@ -134,7 +123,7 @@ describe('when we have an instance', function() {
       result: { ok: 1, n: 9 }
     })
 
-    // TODO: Add case for placeholder insertion failure
+
 
     return _([{
       hello: 1
@@ -144,6 +133,16 @@ describe('when we have an instance', function() {
     .through(mongoStream.checkAllReceived())
   })
 
+  checkStream('Add case for holes')
+  checkStream('Handle dispatch insert errors')
+  checkStream('Ensure index on is_placeholder')
+  checkStream('Setup event-dispatch')
+  checkStream('Setup placeholders')
+
+  checkStream('Add case for max insertion of placholders')
+  checkStream('Add case for 0 placeholders')
+  checkStream('Add case for enough placeholders')
+  checkStream('Add case for placeholder insertion failure')
 
 
   checkStream('reads (all)', () =>
