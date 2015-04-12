@@ -59,13 +59,7 @@ let constructor = (mongo) => {
         })),
 
         mongo(),
-        // Create an array of unbroken ordinals
-        _.reduce([], (arr, x, i) => {
-            if (arr.length === 0 ||
-                arr[arr.length-1]._id === x._id-1)
-              arr.push(x);
-            return arr;
-        }),
+        _.collect(),
         _.map((eventsNotDispatched) => ({
           method: 'insert',
           collection: 'event-dispatch',
