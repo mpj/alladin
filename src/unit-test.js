@@ -149,7 +149,100 @@ describe('when we have an instance', function() {
     .through(mongoStream.checkAllReceived())
   })
 
+  checkStream('pushes dispatch insert errors', () => {
+
+    // the insert goes fine
+    mongoStream.stub({
+      method: 'findAndModify',
+      collection: 'event-log'
+    },{
+      value: { hello: 1, _id: 67121 },
+      ok: 1
+    })
+
+    // first part of dispatch sync also goes fine
+    mongoStream.stub({
+      method: 'find',
+      collection: 'event-dispatch',
+      sort: { '$natural': -1 }
+    }, _([
+      { _id: 67119 }
+    ]))
+
+    // getting the next few items also goes fine
+    mongoStream.stub({
+      method: 'find',
+      collection: 'event-log',
+      selector: {
+        _id : { '$gt': 67119 }
+      }
+    }, _([
+      { waffles: 'no', _id: 67120 },
+      { hello: 1, _id: 67121 }
+    ]))
+
+    // But the pusher tries to insert these items, another
+    // pusher has already inserted the second item.
+    mongoStream.stub({
+      method: 'insert',
+      collection: 'event-dispatch',
+      doc: [
+        { waffles: 'no', _id: 67120 },
+        { hello: 1, _id: 67121 }
+      ],
+      opts: { ordered: true }
+    }, null, (() => {
+      let err = new Error('E11000 duplicate key error index: test-unit.events.$_id_ dup key: { : 67121 }')
+      err.code = 11000;
+      err.name = 'MongoError';
+      return err;
+    })())
+
+    // The pusher will disregard this error and move
+    // on to create placeholders, which will go fine
+
+    // get num placeholders
+    mongoStream.stub({
+      method: 'count',
+      collection: 'event-log',
+      selector: { is_placeholder: true },
+    }, 9991)
+
+    // get latest placeholder
+    mongoStream.stub({
+      method: 'find',
+      collection: 'event-log',
+      selector: { is_placeholder: true },
+      sort: { _id: -1 },
+      limit: 1
+    }, {
+      _id: 67121 + 9991,
+      is_placeholder: true
+    })
+
+    // and insert placeholders
+    mongoStream.stub({
+      method: 'insert',
+      collection: 'event_log',
+      doc: [
+        { _id: 67121 + 9991 + 1, is_placeholder: true },
+        { _id: 67121 + 9991 + 1 + 9, is_placeholder: true }
+      ],
+      opts: { ordered: true }
+    },{
+      result: { ok: 1, n: 9 }
+    })
+
+    return _([{
+      hello: 1
+    }])
+    .through(instance.pusher())
+    .through(mongoStream.checkAllReceived())
+  })
+
   checkStream('Handle dispatch insert errors')
+  checkStream('Handle dispatch sync error (first part)')
+  checkStream('Handle dispatch sync error (second part)')
   checkStream('Ensure index on is_placeholder')
   checkStream('Setup event-dispatch')
   checkStream('Setup placeholders')
