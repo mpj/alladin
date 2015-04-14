@@ -173,16 +173,17 @@ checkStream('find and modifies, options',
   ]))
 )
 
-checkStream('behaviourtest', () =>
+ONLYcheckStream('behaviourtest', () =>
   whenDroppedWithAPI('events')
   .flatMap(() => nativeInsert('events', {
-    is_placeholder: true
+    hello: 'b',
+    _id: 1
   }))
   .map(constant({
     server: SERVER_URI,
     collection: 'events',
     method: 'insert',
-    doc: [{ rutabaga: 'yes', _id: 0 },{ rutabaga: 'yes', _id: 1 }],
+    doc: [{ hello: 'a', _id: 0 },{ hello: 'c', _id: 1 }],
     opts: { ordered: true }
   }))
   .through(mongo())

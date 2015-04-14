@@ -1,6 +1,7 @@
 import _ from 'highland'
 import inspector from './utils/inspector-stream'
 import range from 'mout/array/range'
+import fi from './utils/fi'
 
 let constructor = (mongo) => {
 
@@ -67,6 +68,10 @@ let constructor = (mongo) => {
           opts: { ordered: true }
         })),
         mongo(),
+        _.errors((err, push) => fi(
+          err.code === 11000,
+          () => push(null, true),
+          () => push(err))),
         _.map(() => ({
           method: 'count',
           collection: 'event-log',
