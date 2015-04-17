@@ -22,22 +22,8 @@ describe('when we have an instance', function() {
     instance = constructor(mongoConstructor);
   })
 
-  checkStream('pushes write to event-log', () => {
-
-    mongoStream.stub({
-      method: 'findAndModify',
-      collection: 'event-log',
-      selector: { is_placeholder: { $exists: true} },
-      sort: { _id: 1 },
-      update: { hello: 1 },
-      opts: { w: 1, j: 1, wtimeout: 5000, new: true }
-    },{
-      value: { hello: 1, _id: 67121 },
-      ok: 1
-    })
-
-    // Once the document has been safely inserted,
-    // the pusher tries to synchronize the with the dispatch.
+  checkStream('flush', () => {
+    // flush tries to synchronize the with the dispatch.
     // It will check what the latest ordinal on the dispatch is...
 
     mongoStream.stub({
@@ -81,7 +67,14 @@ describe('when we have an instance', function() {
       result: { ok: 1, n: 2 }
     })
 
-    // ... afterwards, the pusher will fill up some placeholders.
+    return instance
+      .flush()
+      .through(mongoStream.checkAllReceived())
+  })
+
+  checkStream('populate', () => {
+
+    // populate will fill up some placeholders.
     // It will begin by figuring out how many placeholders we have ...
 
     mongoStream.stub({
@@ -121,11 +114,32 @@ describe('when we have an instance', function() {
       result: { ok: 1, n: 9 }
     })
 
+    return instance
+      .populate()
+      .through(mongoStream.checkAllReceived())
+
+  })
+
+  checkStream('pusher', () => {
+
+    mongoStream.stub({
+      method: 'findAndModify',
+      collection: 'event-log',
+      selector: { is_placeholder: { $exists: true} },
+      sort: { _id: 1 },
+      update: { hello: 1 },
+      opts: { w: 1, j: 1, wtimeout: 5000, new: true }
+    },{
+      value: { hello: 1, _id: 67121 },
+      ok: 1
+    })
+
     return _([{
       hello: 1
     }])
     .through(instance.pusher())
     .through(mongoStream.checkAllReceived())
+
   })
 
 
@@ -149,16 +163,7 @@ describe('when we have an instance', function() {
     .through(mongoStream.checkAllReceived())
   })
 
-  checkStream('pushes dispatch insert errors', () => {
-
-    // the insert goes fine
-    mongoStream.stub({
-      method: 'findAndModify',
-      collection: 'event-log'
-    },{
-      value: { hello: 1, _id: 67121 },
-      ok: 1
-    })
+  checkStream('flush ignores insert errors', () => {
 
     // first part of dispatch sync also goes fine
     mongoStream.stub({
@@ -169,7 +174,7 @@ describe('when we have an instance', function() {
       { _id: 67119 }
     ]))
 
-    // getting the next few items also goes fine
+    // getting the next few items goes fine
     mongoStream.stub({
       method: 'find',
       collection: 'event-log',
@@ -198,46 +203,48 @@ describe('when we have an instance', function() {
       return err;
     })())
 
-    // The pusher will disregard this error and move
-    // on to create placeholders, which will go fine
+    return instance
+      .flush()
+  })
 
-    // get num placeholders
+  checkStream('flush passes other errors', () => {
+
+    // finding dispatch goes fine
     mongoStream.stub({
-      method: 'count',
-      collection: 'event-log',
-      selector: { is_placeholder: true },
-    }, 9991)
+      method: 'find',
+      collection: 'event-dispatch',
+      sort: { '$natural': -1 }
+    }, _([
+      { _id: 67119 }
+    ]))
 
-    // get latest placeholder
+    // getting the next few items also goes fine
     mongoStream.stub({
       method: 'find',
       collection: 'event-log',
-      selector: { is_placeholder: true },
-      sort: { _id: -1 },
-      limit: 1
-    }, {
-      _id: 67121 + 9991,
-      is_placeholder: true
-    })
+      selector: {
+        _id : { '$gt': 67119 }
+      }
+    }, _([
+      { waffles: 'no', _id: 67120 },
+      { hello: 1, _id: 67121 }
+    ]))
 
-    // and insert placeholders
+    // if inserting yields another error, it should NOT
+    // ignored
     mongoStream.stub({
       method: 'insert',
-      collection: 'event_log',
+      collection: 'event-dispatch',
       doc: [
-        { _id: 67121 + 9991 + 1, is_placeholder: true },
-        { _id: 67121 + 9991 + 1 + 9, is_placeholder: true }
+        { waffles: 'no', _id: 67120 },
+        { hello: 1, _id: 67121 }
       ],
       opts: { ordered: true }
-    },{
-      result: { ok: 1, n: 9 }
-    })
+    }, null, new Error('KABOOM'))
 
-    return _([{
-      hello: 1
-    }])
-    .through(instance.pusher())
-    .through(mongoStream.checkAllReceived())
+    return instance
+      .flush()
+      .errors((err,push) => fi(err.message === 'KABOOM', () => push(null, true)))
   })
 
   checkStream('Handle dispatch insert errors')
