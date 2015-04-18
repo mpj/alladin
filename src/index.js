@@ -106,7 +106,7 @@ let constructor = (mongo) => {
           sort: { _id: 1 },
           collection: 'event-log',
           update: doc,
-          opts: { w: 1, j: 1, wtimeout: 5000, new: true }
+          opts: { w: 1, wtimeout: 5000, new: true }
         })),
         mongo(),
         _.map(constant({

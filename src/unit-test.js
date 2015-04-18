@@ -69,7 +69,7 @@ describe('when we have an instance', function() {
 
     return instance
       .flush()
-      .filter((x) => x.ok)
+      .filter((x) => x.ok && !x.n)
       .through(mongoStream.checkAllReceived())
   })
 
@@ -129,7 +129,7 @@ describe('when we have an instance', function() {
       selector: { is_placeholder: { $exists: true} },
       sort: { _id: 1 },
       update: { hello: 1 },
-      opts: { w: 1, j: 1, wtimeout: 5000, new: true }
+      opts: { w: 1, wtimeout: 5000, new: true }
     },{
       value: { hello: 1, _id: 67121 },
       ok: 1
@@ -154,7 +154,7 @@ describe('when we have an instance', function() {
       selector: { is_placeholder: { $exists: true} },
       sort: { _id: 1 },
       update: { hello: 1 },
-      opts: { w: 1, j: 1, wtimeout: 5000, new: true }
+      opts: { w: 1, wtimeout: 5000, new: true }
     }, null, new Error('wat'));
 
 
