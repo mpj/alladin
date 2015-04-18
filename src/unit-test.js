@@ -252,9 +252,6 @@ describe('when we have an instance', function() {
       .errors((err,push) => fi(err.message === 'KABOOM', () => push(null, true)))
   })
 
-  checkStream('Handle dispatch insert errors')
-  checkStream('Handle dispatch sync error (first part)')
-  checkStream('Handle dispatch sync error (second part)')
   checkStream('Ensure index on is_placeholder')
   checkStream('Setup event-dispatch')
   checkStream('Setup placeholders')
