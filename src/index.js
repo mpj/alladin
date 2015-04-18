@@ -1,6 +1,7 @@
 import _ from 'highland'
 import inspector from './utils/inspector-stream'
 import range from 'mout/array/range'
+import constant from 'mout/function/constant'
 import fi from './utils/fi'
 
 let constructor = (mongo) => {
@@ -46,11 +47,15 @@ let constructor = (mongo) => {
         opts: { ordered: true }
       }))
       .through(mongo())
+      .map(constant({
+        ok: true
+      }))
       .errors((err, push) => fi(
         err.code === 11000,
-        () => push(null, true),
+        () => push(null, { busy: true }),
         () => push(err))
       )
+
     ,
 
     populate: () =>
@@ -103,8 +108,10 @@ let constructor = (mongo) => {
           update: doc,
           opts: { w: 1, j: 1, wtimeout: 5000, new: true }
         })),
-
-        mongo()
+        mongo(),
+        _.map(constant({
+          ok: true
+        }))
       ),
 
     read: (selector) =>

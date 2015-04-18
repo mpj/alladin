@@ -69,6 +69,7 @@ describe('when we have an instance', function() {
 
     return instance
       .flush()
+      .filter((x) => x.ok)
       .through(mongoStream.checkAllReceived())
   })
 
@@ -138,12 +139,14 @@ describe('when we have an instance', function() {
       hello: 1
     }])
     .through(instance.pusher())
+    .filter((x) => x.ok)
     .through(mongoStream.checkAllReceived())
+
 
   })
 
 
-  checkStream('Handle log insert errors', () => {
+  checkStream('pusher sends on errors', () => {
 
     mongoStream.stub({
       method: 'findAndModify',
@@ -163,7 +166,7 @@ describe('when we have an instance', function() {
     .through(mongoStream.checkAllReceived())
   })
 
-  checkStream('flush ignores insert errors', () => {
+  checkStream('flush coerces dupe insert errors to busy result', () => {
 
     // first part of dispatch sync also goes fine
     mongoStream.stub({
@@ -205,9 +208,11 @@ describe('when we have an instance', function() {
 
     return instance
       .flush()
+      .through(inspector('hmm'))
+      .filter((x) => x.busy)
   })
 
-  checkStream('flush passes other errors', () => {
+  checkStream('flush does NOT coerce OTHER errors to busy result', () => {
 
     // finding dispatch goes fine
     mongoStream.stub({
