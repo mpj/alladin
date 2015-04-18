@@ -129,7 +129,7 @@ describe('when we have an instance', function() {
       selector: { is_placeholder: { $exists: true} },
       sort: { _id: 1 },
       update: { hello: 1 },
-      opts: { w: 1, wtimeout: 5000, new: true }
+      opts: { w: 1, new: true }
     },{
       value: { hello: 1, _id: 67121 },
       ok: 1
@@ -150,13 +150,8 @@ describe('when we have an instance', function() {
 
     mongoStream.stub({
       method: 'findAndModify',
-      collection: 'event-log',
-      selector: { is_placeholder: { $exists: true} },
-      sort: { _id: 1 },
-      update: { hello: 1 },
-      opts: { w: 1, wtimeout: 5000, new: true }
+      collection: 'event-log'
     }, null, new Error('wat'));
-
 
     return _([{
       hello: 1
